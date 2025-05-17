@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate SMM Panel + Control</title>
+    <style>
+        :root {
+            --glow: #7a00ff;
+            --bg: #0a0a1a;
+            --card: #1a1a2e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: white;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Common Styles */
+        .hidden {
+            display: none;
+        }
+
+        .pay-btn {
+            background: linear-gradient(45deg, #25D366, #128C7E);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* Control Panel Styles */
+        .control-auth {
+            max-width: 400px;
+            margin: 100px auto;
+            text-align: center;
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        .admin-header {
+            text-align: center;
+            padding: 20px;
+            background: #1a1a2e;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .service-item {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #2a2a4e;
+            border-radius: 5px;
+        }
+
+        /* Main Panel Styles */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .service-card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Toggle Switch */
+        .view-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Control Auth -->
+    <div id="controlAuth" class="control-auth">
+        <h2>SMM Control Panel</h2>
+        <input type="password" id="adminPass" placeholder="Enter Password" style="margin: 20px 0; width: 100%; padding: 10px;">
+        <button class="pay-btn" onclick="verifyAdmin()">Unlock Panel</button>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden">
+        <div class="admin-header">
+            <h2>ZAIB Control Panel</h2>
+            <button class="pay-btn danger" onclick="logout()">Logout</button>
+        </div>
+
+        <div style="padding: 20px;">
+            <!-- Service Management -->
+            <div style="margin-bottom: 30px;">
+                <h3>Service Management</h3>
+                <select id="categorySelect" class="form-input">
+                    <option value="tiktok">TikTok</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="country">Country</option>
+                </select>
+
+                <div id="serviceList" style="margin: 20px 0;"></div>
+
+                <div>
+                    <h4>Add New Service:</h4>
+                    <input type="text" id="serviceName" placeholder="Service Name" class="form-input">
+                    <input type="number" id="servicePrice" placeholder="Price" class="form-input">
+                    <input type="number" id="serviceMin" placeholder="Min Quantity" class="form-input">
+                    <button class="pay-btn" onclick="addService()">Add Service</button>
+                </div>
+            </div>
+
+            <!-- User View Toggle -->
+            <button class="pay-btn view-toggle" onclick="toggleUserView()">User View</button>
+        </div>
+    </div>
+
+    <!-- User Panel -->
+    <div id="userPanel" class="hidden">
+        <!-- Original SMM Panel Content Here -->
+        <div class="category-grid">
+            <button class="category-btn" data-category="tiktok">TikTok</button>
+            <button class="category-btn" data-category="youtube">YouTube</button>
+            <button class="category-btn" data-category="instagram">Instagram</button>
+            <button class="category-btn" data-category="facebook">Facebook</button>
+            <button class="category-btn" data-category="country">Country</button>
+        </div>
+
+        <div class="service-grid" id="servicesContainer"></div>
+
+        <!-- Support Button -->
+        <a href="https://wa.me/923438220191" class="pay-btn" style="position:fixed; bottom:30px; right:30px;" target="_blank">
+            📞 24/7 Support
+        </a>
+
+        <!-- Admin Toggle -->
+        <button class="pay-btn view-toggle" onclick="toggleAdminView()">Admin Panel</button>
+    </div>
+
+    <script>
+        // Password Configuration
+        const ADMIN_PASS = "zaib331099";
+        let isAdmin = false;
+
+        // Service Data Management
+        let services = JSON.parse(localStorage.getItem('smm-services')) || {
+            tiktok: [],
+            youtube: [],
+            instagram: [],
+            facebook: [],
+            country: []
+        };
+
+        // Auth Functions
+        function verifyAdmin() {
+            const pass = document.getElementById('adminPass').value;
+            if(pass === ADMIN_PASS) {
+                isAdmin = true;
+                document.getElementById('controlAuth').classList.add('hidden');
+                document.getElementById('adminPanel').classList.remove('hidden');
+                loadServices();
+            } else {
+                alert('Invalid Password!');
+            }
+        }
+
+        function logout() {
+            isAdmin = false;
+            localStorage.removeItem('smm-services');
+            window.location.reload();
+        }
+
+        // Service Management
+        function loadServices() {
+            const category = document.getElementById('categorySelect').value;
+            const serviceList = document.getElementById('serviceList');
+            
+            serviceList.innerHTML = services[category].map((service, index) => `
+                <div class="service-item">
+                    <input type="text" value="${service.name}" class="form-input">
+                    <input type="number" value="${service.price}" class="form-input">
+                    <input type="number" value="${service.min}" class="form-input">
+                    <button class="pay-btn" onclick="updateService('${category}', ${index})">Update</button>
+                    <button class="pay-btn danger" onclick="deleteService('${category}', ${index})">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function addService() {
+            const category = document.getElementById('categorySelect').value;
+            const newService = {
+                name: document.getElementById('serviceName').value,
+                price: Number(document.getElementById('servicePrice').value),
+                min: Number(document.getElementById('serviceMin').value)
+            };
+
+            services[category].push(newService);
+            localStorage.setItem('smm-services', JSON.stringify(services));
+            loadServices();
+            updateUserView();
+        }
+
+        function updateService(category, index) {
+            const inputs = document.getElementsByClassName('service-item')[index].getElementsByTagName('input');
+            services[category][index] = {
+                name: inputs[0].value,
+                price: Number(inputs[1].value),
+                min: Number(inputs[2].value)
+            };
+            localStorage.setItem('smm-services', JSON.stringify(services));
+            updateUserView();
+        }
+
+        function deleteService(category, index) {
+            services[category].splice(index, 1);
+            localStorage.setItem('smm-services', JSON.stringify(services));
+            loadServices();
+            updateUserView();
+        }
+
+        // View Toggles
+        function toggleUserView() {
+            document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('userPanel').classList.remove('hidden');
+            updateUserView();
+        }
+
+        function toggleAdminView() {
+            document.getElementById('userPanel').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+        }
+
+        // User Panel Functions
+        function updateUserView() {
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                const category = btn.dataset.category;
+                btn.textContent = `${category} (${services[category].length})`;
+                
+                btn.addEventListener('click', () => {
+                    document.getElementById('servicesContainer').innerHTML = services[category].map(service => `
+                        <div class="service-card">
+                            <h3>${service.name}</h3>
+                            <p>PKR ${service.price}/${service.min}+</p>
+                            <button class="pay-btn">Order Now</button>
+                        </div>
+                    `).join('');
+                });
+            });
+        }
+
+        // Initialize
+        document.getElementById('categorySelect').addEventListener('change', loadServices);
+    </script>
+</body>
+</html>
